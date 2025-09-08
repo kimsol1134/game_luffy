@@ -8,7 +8,7 @@ export class Player {
         this.speed = 5;
         
         this.image = new Image();
-        this.image.src = 'public/luffy.png';
+        this.image.src = './luffy.png';
         this.imageLoaded = false;
         
         this.image.onload = () => {

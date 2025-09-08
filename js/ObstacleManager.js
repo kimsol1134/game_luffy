@@ -7,7 +7,7 @@ class Obstacle {
         this.speed = speed;
         
         this.image = new Image();
-        this.image.src = 'public/akainu.png';
+        this.image.src = './akainu.png';
         this.imageLoaded = false;
         
         this.image.onload = () => {
