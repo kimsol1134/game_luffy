@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아케이드 게임 - 장애물 피하기</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        
+        #gameContainer {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            text-align: center;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #34495e;
+            border-radius: 8px;
+            background: #ecf0f1;
+            touch-action: none;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+        
+        .instructions {
+            color: #7f8c8d;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            #gameContainer {
+                padding: 10px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .instructions {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1>장애물 피하기</h1>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div class="instructions">
+            <p><strong>데스크탑:</strong> ←→ 키 또는 A/D 키로 이동</p>
+            <p><strong>모바일:</strong> 화면 왼쪽/오른쪽 터치로 이동</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { GameManager } from './js/GameManager.js';
+        import { InputManager } from './js/InputManager.js';
+        import { Player } from './js/Player.js';
+        import { ObstacleManager } from './js/ObstacleManager.js';
+        import { UIManager } from './js/UIManager.js';
+        import { CollisionDetector } from './js/CollisionDetector.js';
+
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.setupCanvas();
+                
+                this.gameManager = new GameManager();
+                this.inputManager = new InputManager();
+                this.player = new Player(this.canvas);
+                this.obstacleManager = new ObstacleManager(this.canvas);
+                this.uiManager = new UIManager(this.canvas);
+                
+                this.uiManager.setRestartCallback(() => this.restart());
+                
+                this.lastTime = 0;
+                
+                this.gameManager.start();
+                this.gameLoop();
+            }
+            
+            setupCanvas() {
+                const resizeCanvas = () => {
+                    const container = document.getElementById('gameContainer');
+                    const maxWidth = Math.min(window.innerWidth - 40, 800);
+                    const maxHeight = Math.min(window.innerHeight - 200, 600);
+                    
+                    const aspectRatio = 800 / 600;
+                    let canvasWidth = maxWidth;
+                    let canvasHeight = maxWidth / aspectRatio;
+                    
+                    if (canvasHeight > maxHeight) {
+                        canvasHeight = maxHeight;
+                        canvasWidth = maxHeight * aspectRatio;
+                    }
+                    
+                    this.canvas.width = canvasWidth;
+                    this.canvas.height = canvasHeight;
+                    this.canvas.style.width = canvasWidth + 'px';
+                    this.canvas.style.height = canvasHeight + 'px';
+                    
+                    if (this.player) {
+                        this.player.reset(this.canvas);
+                    }
+                    if (this.uiManager) {
+                        this.uiManager.resize(this.canvas);
+                    }
+                };
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+            }
+            
+            gameLoop(currentTime = 0) {
+                const deltaTime = currentTime - this.lastTime;
+                this.lastTime = currentTime;
+                
+                this.update(deltaTime);
+                this.draw();
+                
+                requestAnimationFrame((time) => this.gameLoop(time));
+            }
+            
+            update(deltaTime) {
+                if (this.gameManager.state === 'Playing') {
+                    this.gameManager.update();
+                    this.player.update(this.inputManager);
+                    this.obstacleManager.update(this.gameManager, deltaTime);
+                    
+                    // Check collisions
+                    if (CollisionDetector.checkPlayerObstacleCollisions(
+                        this.player, 
+                        this.obstacleManager.getObstacles()
+                    )) {
+                        this.gameManager.gameOver();
+                    }
+                }
+            }
+            
+            draw() {
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                if (this.gameManager.state === 'Playing') {
+                    this.player.draw(this.ctx);
+                    this.obstacleManager.draw(this.ctx);
+                    this.uiManager.drawGame(this.gameManager);
+                } else if (this.gameManager.state === 'GameOver') {
+                    this.player.draw(this.ctx);
+                    this.obstacleManager.draw(this.ctx);
+                    this.uiManager.drawGameOver(this.gameManager);
+                }
+            }
+            
+            restart() {
+                this.gameManager.restart();
+                this.player.reset(this.canvas);
+                this.obstacleManager.reset();
+            }
+        }
+        
+        // Start the game when the page loads
+        window.addEventListener('load', () => {
+            new Game();
+        });
+    </script>
+</body>
+</html>

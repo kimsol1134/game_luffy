@@ -1,0 +1,17 @@
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Vercel
+.vercel
+
+# IDE
+.vscode/
+.idea/
+
+# Node modules (if added later)
+node_modules/
